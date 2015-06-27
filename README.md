@@ -11,7 +11,7 @@ the case of odd number of players. And that is why i've modified last test case.
 I've also added **prepare()** function which is necessary to delete or to add some players into the
 table and **main()** function, **main()** function holds the tournament and calling functions from 
 **gen_and_run_html.py**. And that functions draw names and winner's (red)  or looser's (blue) lines on
-the canvas, using html. And then browser starts and renders it. So I've also added this visialization.
+the canvas, using html. And then browser starts and renders it. So I've also added this visialization. I dind't do another steps from extracredit. 
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; To begin just run `python tournament.py` (database `tournament` should be created)
 
