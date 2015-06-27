@@ -3,7 +3,8 @@ modified last test case (line 119) inside tournament_test.py,
 because I've changed returned values of swissPairings() function,
 so swissPairings() returns not only list of pairs, but also a tuple, which is necessary for 
 the case of odd number of players. And that is why i've modified last test case.
-    I've done 2 first steps from extracredit - I've prevented rematch by preventRematch()
+
+I've done 2 first steps from extracredit - I've prevented rematch by preventRematch()
 function and  I'm giving free win to lonely player (giveFreeWin() function).
 I've also added prepare() function which is necessary to delete or to add some players into the
 table and main() function, main() function holds the tournament and calling functions from 
