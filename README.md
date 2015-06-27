@@ -13,5 +13,5 @@ table and **main()** function, **main()** function holds the tournament and call
 **gen_and_run_html.py**. And that functions draw names and winner's (red)  or looser's (blue) lines on
 the canvas, using html. And then browser starts and renders it. So I've also added this visialization.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; To begin just tun `python tournament.py`
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; To begin just run `python tournament.py`
 
