@@ -1,7 +1,7 @@
 
 # project 2
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;My code passes all test from **tournament_test.py**. I've just slightly
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;My code passes all tests from **tournament_test.py**. I've just slightly
 modified last test case (line 119) inside **tournament_test.py**,
 because I've changed returned values of **swissPairings()** function,
 so **swissPairings()** returns not only list of pairs, but also a tuple, which is necessary for 
