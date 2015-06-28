@@ -9,7 +9,7 @@
 
 ### Description of tournament.py script:
 
-1. After installing psycopg2 and creating database with table you are ready to run `python tournament.py`. Function `main()` will be called. First of all you will be asked if you wish to erase the table and if you wish to add some players to the table. Then you'll specidy names of the players, that names would be fetched to the `players` table.
+1. After installing psycopg2 and creating database with table you are ready to run `python tournament.py`. Function `main()` will be called. First of all you will be asked if you wish to erase the table and if you wish to add some players to the table. Then you'll specify names of the players, that names would be fetched to the `players` table.
 2. Next, `main()` will hold the tournament, will print initial standings of the players, results after each round and pairs for each round.
 3. Also I have `gen_and_run_html.py` script. `main()` function from `tournament.py` will give current data for each round to the `gen_and_run_html.py`. And this script will draw names and winner's or looser's lines using html.
 
