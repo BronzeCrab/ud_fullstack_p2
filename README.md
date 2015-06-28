@@ -17,11 +17,6 @@
 ![Example tournament](https://cloud.githubusercontent.com/assets/5002732/8395720/da150f96-1d89-11e5-9e5f-3acde2896c72.png)
 
 ### Few notes:
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;My code passes all tests from **tournament_test.py**. I've just slightly
-modified last test case (line 119) inside **tournament_test.py**,
-because I've changed returned values of **swissPairings()** function,
-so **swissPairings()** retu rns not only list of pairs, but also a tuple, which is necessary for 
-the case of odd number of players. And that is why i've modified last test case.
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;I've done 2 first steps from extracredit - I've prevented rematch by **preventRematch()** function and  I'm giving free win to lonely player (**giveFreeWin()** function).
 I've also added **prepare()** function which is necessary to delete or to add some players into the
