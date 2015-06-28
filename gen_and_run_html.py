@@ -77,7 +77,7 @@ def gen_html(data):
     return positions
 
 
-def drawLines(winner_id, looser_id, positions, t_round, alone=()):
+def drawLines(winner_id, positions, t_round, looser_id=None):
     """Drawing lines for each round.
 
     Args:
@@ -111,7 +111,7 @@ def drawLines(winner_id, looser_id, positions, t_round, alone=()):
 
     add_lines = ""
     for index, player in enumerate(positions):
-        if player[0] == winner_id or (len(alone) == 2 and player[0] == alone[0]):
+        if player[0] == winner_id or (player[0] == winner_id and looser_id == None):
             winner_name = player[1]
             x = player[2]
             y = player[3]

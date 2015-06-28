@@ -5,40 +5,42 @@
 
 import psycopg2
 import sys
-import gen_and_run_html
 import random
 import math
 import copy
+import gen_and_run_html
 
-def connect():
-    """Connect to the PostgreSQL database.  Returns a database connection."""
-    return psycopg2.connect("dbname=tournament")
+def connect(database_name="tournament"):
+    """Connect to the PostgreSQL database.  Returns a database connection
+       and cursor."""
+    try:
+        db = psycopg2.connect("dbname={}".format(database_name))
+        cursor = db.cursor()
+        return db, cursor
+    except:
+        print("error while connecting to the database")
+
 
 
 def deleteMatches():
     """Remove all the match records from the database."""
     # connecting to our db:
-    conn = connect()
-    # defining cursor:
-    cur = conn.cursor()
+    db, cur = connect()
     # deleting all match records:
     cur.execute("ALTER TABLE players DROP COLUMN wins;")
     cur.execute("ALTER TABLE players ADD COLUMN wins int DEFAULT 0;")
     cur.execute("ALTER TABLE players DROP COLUMN matches;")
     cur.execute("ALTER TABLE players ADD COLUMN matches int DEFAULT 0;")
     # writing changes into db:
-    conn.commit()
+    db.commit()
     # closing connection:
-    cur.close()
-    conn.close()
+    db.close()
 
 
 def deletePlayers():
     """Remove all the player records from the database."""
     # connecting to our db:
-    conn = connect()
-    # defining cursor:
-    cur = conn.cursor()
+    db, cur = connect()
     # deleting all rows from players table
     cur.execute("DELETE FROM players")
     # resetting id_seq to 1 after clearing the table,
@@ -46,24 +48,20 @@ def deletePlayers():
     # for the great justice
     cur.execute("ALTER SEQUENCE players_id_seq RESTART WITH 1;")
     # writing changes into db:
-    conn.commit()
+    db.commit()
     # closing connection:
-    cur.close()
-    conn.close()
+    db.close()
 
 
 def countPlayers():
     """Returns the number of players currently registered."""
     # connecting to our db:
-    conn = connect()
-    # defining cursor:
-    cur = conn.cursor()
+    db, cur = connect()
     # counting number of players:
     cur.execute("SELECT COUNT(*) FROM players;")
     number_of_players = cur.fetchone()[0]
     # closing connection:
-    cur.close()
-    conn.close()
+    db.close()
     return number_of_players
 
 
@@ -77,16 +75,13 @@ def registerPlayer(name):
       name: the player's full name (need not be unique).
     """
     # connecting to our db:
-    conn = connect()
-    # defining cursor:
-    cur = conn.cursor()
+    db, cur = connect()
     # adding player inside 'players' table:
     cur.execute("INSERT INTO players (name) VALUES (%s)", (name,))
     # writing changes into db:
-    conn.commit()
+    db.commit()
     # closing connection:
-    cur.close()
-    conn.close()
+    db.close()
 
 
 def playerStandings():
@@ -103,15 +98,12 @@ def playerStandings():
         matches: the number of matches the player has played
     """
     # connecting to our db:
-    conn = connect()
-    # defining cursor:
-    cur = conn.cursor()
+    db, cur = connect()
     # selecting all info about players, ordering by wins:
     cur.execute("SELECT * FROM players ORDER BY wins DESC")
     standings = cur.fetchall()
      # closing connection:
-    cur.close()
-    conn.close()
+    db.close()
     return standings
 
 
@@ -123,19 +115,16 @@ def reportMatch(winner, loser):
       loser:  the id number of the player who lost
     """
     # connecting to our db:
-    conn = connect()
-    # defining cursor:
-    cur = conn.cursor()
+    db, cur = connect()
     # updating info about players:
     cur.execute("""UPDATE players SET wins = wins + 1,
                    matches = matches + 1 WHERE id = (%s)""", (winner,))
     cur.execute("""UPDATE players SET 
                    matches = matches + 1 WHERE id = (%s)""", (loser,))
     # writing changes into db:
-    conn.commit()
+    db.commit()
     # closing connection:
-    cur.close()
-    conn.close()
+    db.close()
 
  
 def swissPairings():
@@ -145,14 +134,12 @@ def swissPairings():
     appears exactly once in the pairings.  Each player is paired with another
     player with an equal or nearly-equal win record, that is, a player adjacent
     to him or her in the standings.
-  
     Returns:
         list_of_pairs: A list of tuples, looks like [(id1, name1, id2, name2),...]
           id1: the first player's unique id
           name1: the first player's name
           id2: the second player's unique id
           name2: the second player's name
-        alone: tuple (id, name) with lonely player (if not exist empty tuple)
     """
     # retrieving list of tuples with all data
     standings = playerStandings()
@@ -163,25 +150,22 @@ def swissPairings():
     list_of_pairs = []
     count = 0
     pair = []
-    alone = ()
     while standings:
         # remove two players from 'standings' list
         # and appending them to list_of_pairs
         for count in xrange(2):
             # use try, because maybe we have odd number of players,
-            # if it's true, then when I'll pop all
+            # if it's true, then there will be a moment when I'll pop all
             # all the players except one and then
             # there will be a try to pop from empty list and it will be an IndexError
             try:
                 pair.append(standings.pop()[0:2])
             except IndexError:
                 # if there is a player (it will be the only one in 'pair' list) 
-                # without pair, then give free win to him. In this case in 'pair'
-                # list has just one player, so he is lonely, not paired
-                lonely = pair 
-                giveFreeWin(lonely[0][0])
-                # appending to list of player lonely, he looks like just (id, name)
-                alone = (lonely[0][0], lonely[0][1])
+                # I will add BYE player to him. 
+                # creating pair with BYE player:
+                pair = (pair[0][0], pair[0][1], 0, 'BYE')
+                list_of_pairs.append(pair)
                 break
         # if there wasn't any break inside for loop:        
         else:         
@@ -189,7 +173,7 @@ def swissPairings():
             list_of_pairs.append(pair)
             count = 0
             pair = []
-    return list_of_pairs, alone
+    return list_of_pairs
 
 
 def giveFreeWin(unpaired):
@@ -199,20 +183,17 @@ def giveFreeWin(unpaired):
       unpaired: the id number of lonely player
     """
     # connecting to our db:
-    conn = connect()
-    # defining cursor:
-    cur = conn.cursor()
+    db, cur = connect()
     # giving free win:
     cur.execute("""UPDATE players SET wins = wins + 1,
                    matches = matches + 1 WHERE id = (%s)""", (unpaired,))
     # writing changes into db:
-    conn.commit()
+    db.commit()
     # closing connection:
-    cur.close()
-    conn.close()
+    db.close()
 
 
-def preventRematch(all_pairs, pairs_list, alone):
+def preventRematch(all_pairs, pairs_list):
     """Checking if any pair from current (for this round) pairs list is
        already is in all_pairs list (list of pairs for all rounds) and
        fixing this by shuffeling players
@@ -226,68 +207,43 @@ def preventRematch(all_pairs, pairs_list, alone):
       pairs_list: A list of fixed pairs [(id_fixed, name_fixed, id2, name2),()...]
     """
     for index, pair in enumerate(pairs_list):
-        # take in considiration only paired players, not lonely
-        i = 1
         reversed_pair = (pair[2], pair[3], pair[0], pair[1])
-        while (pair in all_pairs or reversed_pair in all_pairs) and index + i <= len(pairs_list) - 1:
-            if (pair[0], pair[1], pairs_list[index + i][0], pairs_list[index + i][1]) not in all_pairs\
-            and (pairs_list[index + i][0], pairs_list[index + i][1], pair[0], pair[1]) not in all_pairs\
-            and (pair[2], pair[3], pairs_list[index + i][2], pairs_list[index + i][3]) not in all_pairs\
-            and (pairs_list[index + i][2], pairs_list[index + i][3], pair[2], pair[3]) not in all_pairs:
-                pairs_list[index] = (pair[0], pair[1], pairs_list[index + i][0], pairs_list[index + i][1])
-                pairs_list[index + i] = (pair[2], pair[3], pairs_list[index + i][2], pairs_list[index + i][3])
+        j = -1
+        while (pair in all_pairs or reversed_pair in all_pairs) and index + j >= 0:
+            if (pairs_list[index + j][2], pairs_list[index + j][3], pair[2], pair[3]) not in all_pairs\
+            and (pair[2], pair[3], pairs_list[index + j][2], pairs_list[index + j][3]) not in all_pairs\
+            and (pairs_list[index + j][0], pairs_list[index + j][1], pair[0], pair[1]) not in all_pairs\
+            and (pair[0], pair[1], pairs_list[index + j][0], pairs_list[index + j][1]) not in all_pairs:
+                pairs_list[index] = (pairs_list[index + j][2], pairs_list[index + j][3], pair[2], pair[3])
+                pairs_list[index + j] = (pairs_list[index + j][0], pairs_list[index + j][1], pair[0], pair[1])
                 break
-            elif (pair[0], pair[1], pairs_list[index + i][2], pairs_list[index + i][3]) not in all_pairs\
-            and (pairs_list[index + i][2], pairs_list[index + i][3], pair[0], pair[1]) not in all_pairs\
-            and (pairs_list[index + i][0], pairs_list[index + i][1], pair[2], pair[3]) not in all_pairs\
-            and (pair[2], pair[3], pairs_list[index + i][2], pairs_list[index + i][3]) not in all_pairs:
-                pairs_list[index] = (pair[0], pair[1], pairs_list[index + i][2], pairs_list[index + i][3])
-                pairs_list[index + i] = (pairs_list[index + i][0], pairs_list[index + i][1], pair[2], pair[3])
+            elif (pairs_list[index + j][0], pairs_list[index + j][1], pair[2], pair[3]) not in all_pairs\
+            and (pair[2], pair[3], pairs_list[index + j][0], pairs_list[index + j][1]) not in all_pairs\
+            and (pair[0], pair[1], pairs_list[index + j][2], pairs_list[index + j][3]) not in all_pairs\
+            and (pairs_list[index + j][2], pairs_list[index + j][3], pair[0], pair[1]) not in all_pairs:
+                pairs_list[index] = (pairs_list[index + j][0], pairs_list[index + j][1], pair[2], pair[3])
+                pairs_list[index + j] = (pair[0], pair[1], pairs_list[index + j][2], pairs_list[index + j][3])
                 break
-            i += 1
+            j -= 1
         else:
-            j = -1
-            while (pair in all_pairs or reversed_pair in all_pairs) and index + j >= 0:
-                if (pairs_list[index + j][2], pairs_list[index + j][3], pair[2], pair[3]) not in all_pairs\
-                and (pair[2], pair[3], pairs_list[index + j][2], pairs_list[index + j][3]) not in all_pairs\
-                and (pairs_list[index + j][0], pairs_list[index + j][1], pair[0], pair[1]) not in all_pairs\
-                and (pair[0], pair[1], pairs_list[index + j][0], pairs_list[index + j][1]) not in all_pairs:
-                    pairs_list[index] = (pairs_list[index + j][2], pairs_list[index + j][3], pair[2], pair[3])
-                    pairs_list[index + j] = (pairs_list[index + j][0], pairs_list[index + j][1], pair[0], pair[1])
+            i = 1
+            while (pair in all_pairs or reversed_pair in all_pairs) and index + i <= len(pairs_list) - 1:
+                if (pair[0], pair[1], pairs_list[index + i][0], pairs_list[index + i][1]) not in all_pairs\
+                and (pairs_list[index + i][0], pairs_list[index + i][1], pair[0], pair[1]) not in all_pairs\
+                and (pair[2], pair[3], pairs_list[index + i][2], pairs_list[index + i][3]) not in all_pairs\
+                and (pairs_list[index + i][2], pairs_list[index + i][3], pair[2], pair[3]) not in all_pairs:
+                    pairs_list[index] = (pair[0], pair[1], pairs_list[index + i][0], pairs_list[index + i][1])
+                    pairs_list[index + i] = (pair[2], pair[3], pairs_list[index + i][2], pairs_list[index + i][3])
                     break
-                elif (pairs_list[index + j][0], pairs_list[index + j][1], pair[2], pair[3]) not in all_pairs\
-                and (pair[2], pair[3], pairs_list[index + j][0], pairs_list[index + j][1]) not in all_pairs\
-                and (pair[0], pair[1], pairs_list[index + j][2], pairs_list[index + j][3]) not in all_pairs\
-                and (pair[0], pair[1], pairs_list[index + j][2], pairs_list[index + j][3]) not in all_pairs:
-                    pairs_list[index] = (pairs_list[index + j][0], pairs_list[index + j][1], pair[2], pair[3])
-                    pairs_list[index + j] = (pair[0], pair[1], pairs_list[index + j][2], pairs_list[index + j][3])
+                elif (pair[0], pair[1], pairs_list[index + i][2], pairs_list[index + i][3]) not in all_pairs\
+                and (pairs_list[index + i][2], pairs_list[index + i][3], pair[0], pair[1]) not in all_pairs\
+                and (pairs_list[index + i][0], pairs_list[index + i][1], pair[2], pair[3]) not in all_pairs\
+                and (pair[2], pair[3], pairs_list[index + i][0], pairs_list[index + i][1]) not in all_pairs:
+                    pairs_list[index] = (pair[0], pair[1], pairs_list[index + i][2], pairs_list[index + i][3])
+                    pairs_list[index + i] = (pairs_list[index + i][0], pairs_list[index + i][1], pair[2], pair[3])
                     break
-                j -= 1
-    else:
-        if alone:
-            k = 0
-            print index
-            # for lonely player also prevent rematch 'between him and himself' - i mean
-            # prevent giving free win twice for one player
-            while alone in all_pairs and index >= 0:
-                if (pairs_list[index + k][2], pairs_list[index + k][3]) not in all_pairs and\
-                (pairs_list[index + k][0], pairs_list[index + k][1], alone[0], alone[1]) not in all_pairs and\
-                (alone[0], alone[1], pairs_list[index + k][0], pairs_list[index + k][1]) not in all_pairs:
-                    temp1 = pairs_list[index + k][2]
-                    temp2 = pairs_list[index + k][3]
-                    pairs_list[index + k] = (pairs_list[index + k][0], pairs_list[index + k][1], alone[0], alone[1])
-                    alone = (temp1, temp2)
-                    break
-                elif (pairs_list[index + k][0], pairs_list[index + k][1]) not in all_pairs and\
-                (alone[0], alone[1], pairs_list[index + k][2], pairs_list[index + k][3]) not in all_pairs and\
-                (pairs_list[index + k][0], pairs_list[index + k][1], alone[0], alone[1]) not in all_pairs:
-                    temp1 = pairs_list[index + k][0]
-                    temp2 = pairs_list[index + k][1]
-                    pairs_list[index + k] = (alone[0], alone[1], pairs_list[index + k][2], pairs_list[index + k][3])
-                    alone = (temp1, temp2)
-                    break
-                k -= 1
-    return pairs_list, alone
+                i += 1
+    return pairs_list
 
 
 def prepare():
@@ -356,7 +312,7 @@ def main():
     # e.g. math.log() can produce 2.8422, but math.ceil() will return 3.0 from it,
     # then take int(), so then we would have 3 round exactly
 
-    number_of_players = countPlayers()   
+    number_of_players = countPlayers()
     rounds = int(math.ceil(math.log(number_of_players,2)))
     t_round = 1
     # 'all_pairs' - list of all pairs for all rounds, used for preventRematch() function
@@ -364,21 +320,15 @@ def main():
     for i in xrange(rounds):
         # defining pairs for current round, each element inside 
         # 'pairs_list' looks like (id1, name1, id2, name2)
-        # alone is a tuple looks like (id, name), or can be empty:
-        pairs_list, alone = swissPairings()
+        pairs_list = swissPairings()
         # calling preventRematch for each pair in current round. Only if
         # round of tournament != 1. Cause if we are in the begining, then there are
         # no pairs yet
         if t_round != 1:
-            pairs_list, alone = preventRematch(all_pairs, pairs_list, alone)
+            pairs_list = preventRematch(all_pairs, pairs_list)
         # appending pairs for this round to 'all_pairs' to fetch preventRematch() function
         for pair in pairs_list:
             all_pairs.append(pair)
-        # appending also lonely player if exists:
-        if alone:
-            all_pairs.append(alone)
-            print "lonely player for round number {0} is {1}" \
-                  " he will has free win".format(t_round, alone) 
         print "\nPairs for %s round of torunament:" % t_round
         print pairs_list
         # randomly defining winners in pairs:
@@ -387,25 +337,26 @@ def main():
         # save deepcopy of initial postitons list for this round
         pos_copy = copy.deepcopy(positions)
         for ind, pair in enumerate(pairs_list):
-            # generate random number: 0 or 2
-            randomed = 2*random.randrange(2)
-            winner_id = pair[randomed]
-            if randomed == 0:
-                looser_id, looser_name = pair[2], pair[3]
-                winner_name = pair[1]
+            # for lonely player winner is himself. Id of BYE player is 0
+            # index of BYE player in pair list is 2, so
+            if pair[2] == 0:
+                giveFreeWin(pair[0])
+                winner_id = pair[0]
+                positions = gen_and_run_html.drawLines(winner_id, positions, t_round)
             else:
-                looser_id, looser_name = pair[0], pair[1]
-                winner_name = pair[3]
-            # reporting match results:
-            reportMatch(winner_id, looser_id)
-            # drawing winner and looser lines for this round inside html
-            if ind == 0:
-                positions = gen_and_run_html.drawLines(winner_id, looser_id,
-                                                       positions, t_round, alone)
-            else:
-                positions = gen_and_run_html.drawLines(winner_id, looser_id,
-                                                       positions, t_round)
-            loosers_list.append(looser_id)
+                # generate random number: 0 or 2
+                randomed = 2*random.randrange(2)
+                winner_id = pair[randomed]
+                if randomed == 0:
+                    looser_id = pair[2]
+                else:
+                    looser_id = pair[0]
+                # reporting match results:
+                reportMatch(winner_id, looser_id)
+                # drawing winner and looser lines for this round inside html
+                positions = gen_and_run_html.drawLines(winner_id, positions,
+                                                       t_round,looser_id)
+                loosers_list.append(looser_id)
         # checking for collisions of the names on canvas after each round:
         col_detected, col_ids = gen_and_run_html.check_collisions(positions)
         if col_detected:
