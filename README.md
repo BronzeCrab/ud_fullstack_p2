@@ -9,6 +9,7 @@
 4. Next, `main()` will hold the tournament, will print initial standings of the players, results after each round and pairs for each round.
 5. Also I have `gen_and_run_html.py` script. `main()` function from `tournament.py` will give current data for each round to the `gen_and_run_html.py`. And this script will draw names and winner's or looser's lines using html. So all this can be like this:
 ![Example tournament](https://cloud.githubusercontent.com/assets/5002732/8395720/da150f96-1d89-11e5-9e5f-3acde2896c72.png)
+
 ### Few notes:
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;My code passes all tests from **tournament_test.py**. I've just slightly
 modified last test case (line 119) inside **tournament_test.py**,
